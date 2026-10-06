@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Game progress (coins, level, major) is stored in browser localStorage via src/lib/game-store.ts; leaderboard rivals are simulated. Why: no backend yet.

@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DefinitionsRouteImport } from './routes/definitions'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as WordSearchRouteImport } from './routes/word-search'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DefinitionsRoute = DefinitionsRouteImport.update({
+  id: '/definitions',
+  path: '/definitions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WordSearchRoute = WordSearchRouteImport.update({
+  id: '/word-search',
+  path: '/word-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/definitions': typeof DefinitionsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/word-search': typeof WordSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/definitions': typeof DefinitionsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/word-search': typeof WordSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/definitions': typeof DefinitionsRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/word-search': typeof WordSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/definitions' | '/leaderboard' | '/word-search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/definitions' | '/leaderboard' | '/word-search'
+  id: '__root__' | '/' | '/definitions' | '/leaderboard' | '/word-search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DefinitionsRoute: typeof DefinitionsRoute
+  LeaderboardRoute: typeof LeaderboardRoute
+  WordSearchRoute: typeof WordSearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/definitions': {
+      id: '/definitions'
+      path: '/definitions'
+      fullPath: '/definitions'
+      preLoaderRoute: typeof DefinitionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/word-search': {
+      id: '/word-search'
+      path: '/word-search'
+      fullPath: '/word-search'
+      preLoaderRoute: typeof WordSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DefinitionsRoute: DefinitionsRoute,
+  LeaderboardRoute: LeaderboardRoute,
+  WordSearchRoute: WordSearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
