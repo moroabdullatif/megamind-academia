@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GameShell, NeedMajor } from "@/components/GameShell";
 import { shuffle, TERMS } from "@/lib/game-data";
 import { HINT_COST, usePlayer, winReward, WIN_REWARD } from "@/lib/game-store";
+import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
 
 export const Route = createFileRoute("/definitions")({
   head: () => ({
@@ -23,15 +24,17 @@ function Definitions() {
   const [seed, setSeed] = useState(0);
   const [mode, setMode] = useState<"pick" | "type">("pick");
   const major = player?.major;
+  const ai = useAiTerms();
+  const smart = useSmartHint();
 
   const qs = useMemo(() => {
     if (!major) return [];
-    const all = TERMS[major];
-    return shuffle(all).slice(0, ROUND).map((t) => ({
+    const all = ai.terms && ai.terms.length >= 4 ? ai.terms : TERMS[major];
+    return shuffle(all).slice(0, Math.min(ROUND, all.length)).map((t) => ({
       ...t, options: shuffle([t.term, ...shuffle(all.filter((x) => x.term !== t.term)).slice(0, 3).map((x) => x.term)]),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [major, seed]);
+  }, [major, seed, ai.terms]);
 
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState(0);
