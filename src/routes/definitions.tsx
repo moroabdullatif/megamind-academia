@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GameShell, NeedMajor } from "@/components/GameShell";
 import { shuffle, TERMS } from "@/lib/game-data";
 import { HINT_COST, usePlayer, winReward, WIN_REWARD } from "@/lib/game-store";
+import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
 
 export const Route = createFileRoute("/definitions")({
   head: () => ({
@@ -23,15 +24,17 @@ function Definitions() {
   const [seed, setSeed] = useState(0);
   const [mode, setMode] = useState<"pick" | "type">("pick");
   const major = player?.major;
+  const ai = useAiTerms();
+  const smart = useSmartHint();
 
   const qs = useMemo(() => {
     if (!major) return [];
-    const all = TERMS[major];
+    const all = ai.terms && ai.terms.length >= ROUND ? ai.terms : TERMS[major];
     return shuffle(all).slice(0, ROUND).map((t) => ({
       ...t, options: shuffle([t.term, ...shuffle(all.filter((x) => x.term !== t.term)).slice(0, 3).map((x) => x.term)]),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [major, seed]);
+  }, [major, seed, ai.terms]);
 
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -39,6 +42,8 @@ function Definitions() {
   const [typed, setTyped] = useState("");
   const [hints, setHints] = useState(0);
   const [done, setDone] = useState(false);
+
+  useEffect(() => { setIdx(0); setScore(0); setAnswer(null); setTyped(""); setHints(0); setDone(false); }, [ai.terms]);
 
   if (!player) return <GameShell><div /></GameShell>;
   if (!major) return <GameShell><NeedMajor /></GameShell>;
@@ -66,6 +71,10 @@ function Definitions() {
     update((p) => ({ ...p, coins: p.coins - HINT_COST }));
     setHints(hints + 1);
   };
+  const askSmart = async () => {
+    if (player.coins < AI_HINT_COST) return;
+    if (await smart.ask(q, major)) update((p) => ({ ...p, coins: p.coins - AI_HINT_COST }));
+  };
 
   const pattern = q ? q.term.split("").map((ch, i) => (i < hints ? ch : "_")).join(" ") : "";
 
@@ -76,11 +85,18 @@ function Definitions() {
           <p className="text-sm uppercase tracking-widest text-primary">{major} · Level {player.level}</p>
           <h1 className="font-display text-4xl font-extrabold">Term Definitions</h1>
         </div>
-        <div className="toggle">
-          <button className={mode === "pick" ? "toggle-on" : ""} onClick={() => setMode("pick")}>Pick</button>
-          <button className={mode === "type" ? "toggle-on" : ""} onClick={() => setMode("type")}>Type</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn-ghost" disabled={ai.loading} onClick={() => ai.load(major, player.level, 8)}>
+            {ai.loading ? "Generating…" : ai.terms ? "✨ New AI set" : "✨ AI questions"}
+          </button>
+          {ai.terms && <button className="btn-ghost" onClick={ai.clear}>Classic set</button>}
+          <div className="toggle">
+            <button className={mode === "pick" ? "toggle-on" : ""} onClick={() => setMode("pick")}>Pick</button>
+            <button className={mode === "type" ? "toggle-on" : ""} onClick={() => setMode("type")}>Type</button>
+          </div>
         </div>
       </div>
+      {ai.error && <p className="mb-4 text-sm text-destructive">{ai.error} Using the classic set.</p>}
 
       {done ? (
         <div className="panel mx-auto max-w-lg space-y-4 text-center">
@@ -98,10 +114,17 @@ function Definitions() {
           <div className="progress"><div style={{ width: `${(idx / ROUND) * 100}%` }} /></div>
           <p className="font-display text-2xl font-semibold leading-snug">“{q.definition}”</p>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-lg tracking-widest">{pattern}</p>
-            <button className="btn-hint" disabled={!!answer || player.coins < HINT_COST} onClick={buyHint}>Letter hint 🪙{HINT_COST}</button>
+            <div className="flex gap-2">
+              <button className="btn-hint" disabled={!!answer || player.coins < AI_HINT_COST || !!smart.hints[q.term] || smart.loading === q.term} onClick={askSmart}>
+                {smart.loading === q.term ? "Thinking…" : `✨ Smart hint 🪙${AI_HINT_COST}`}
+              </button>
+              <button className="btn-hint" disabled={!!answer || player.coins < HINT_COST} onClick={buyHint}>Letter hint 🪙{HINT_COST}</button>
+            </div>
           </div>
+          {smart.hints[q.term] && <p className="rounded-xl border border-accent/40 p-3 text-sm">✨ {smart.hints[q.term]}</p>}
+          {smart.error && <p className="text-sm text-destructive">{smart.error}</p>}
 
           {mode === "pick" ? (
             <div className="grid gap-3 sm:grid-cols-2">

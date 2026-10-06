@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GameShell, NeedMajor } from "@/components/GameShell";
 import { buildGrid, shuffle, TERMS, type Placed } from "@/lib/game-data";
 import { HINT_COST, usePlayer, winReward, WIN_REWARD } from "@/lib/game-store";
+import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
 
 export const Route = createFileRoute("/word-search")({
   head: () => ({
@@ -33,15 +34,18 @@ function WordSearch() {
   const [seed, setSeed] = useState(0);
   const level = player?.level ?? 1;
   const major = player?.major;
+  const ai = useAiTerms();
+  const smart = useSmartHint();
 
   const game = useMemo(() => {
     if (!major) return null;
     const size = Math.min(8 + Math.floor(level / 2), 12);
     const count = Math.min(4 + Math.floor(level / 2), 8);
-    const pool = shuffle(TERMS[major]).filter((t) => t.term.length <= size).slice(0, count);
+    const source = ai.terms && ai.terms.length >= 3 ? ai.terms : TERMS[major];
+    const pool = shuffle(source).filter((t) => t.term.length <= size).slice(0, count);
     return { size, ...buildGrid(pool, size) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [major, level, seed]);
+  }, [major, level, seed, ai.terms]);
 
   const [found, setFound] = useState<string[]>([]);
   const [revealed, setRevealed] = useState<string[]>([]);
@@ -49,7 +53,7 @@ function WordSearch() {
   const [cur, setCur] = useState<Cell | null>(null);
   const [won, setWon] = useState(false);
 
-  useEffect(() => { setFound([]); setRevealed([]); setWon(false); }, [game]);
+  useEffect(() => { setFound([]); setRevealed([]); setWon(false); smart.reset(); }, [game]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!player) return <GameShell><div /></GameShell>;
   if (!major || !game) return <GameShell><NeedMajor /></GameShell>;
@@ -126,20 +130,37 @@ function WordSearch() {
           {game.placed.map((p, i) => {
             const done = found.includes(p.term);
             return (
-              <div key={p.term} className={`clue ${done ? "clue-done" : ""}`}>
-                <div>
+              <div key={p.term} className={`clue ${done ? "clue-done" : ""} flex-wrap`}>
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold">{i + 1}. {p.hint}</p>
                   <p className="text-xs text-muted-foreground">
                     {done ? p.term : revealed.includes(p.term) ? `Starts with "${p.term[0]}" · ${p.term.length} letters` : `${p.term.length} letters`}
                   </p>
+                  {!done && smart.hints[p.term] && <p className="mt-1 text-xs">✨ {smart.hints[p.term]}</p>}
                 </div>
-                {!done && !revealed.includes(p.term) && (
-                  <button className="btn-hint" disabled={player.coins < HINT_COST} onClick={() => buyHint(p.term)}>🪙{HINT_COST}</button>
+                {!done && (
+                  <div className="flex gap-1">
+                    {!smart.hints[p.term] && (
+                      <button className="btn-hint" title="Smart hint" disabled={player.coins < AI_HINT_COST || smart.loading === p.term}
+                        onClick={async () => { if (await smart.ask(p, major)) update((x) => ({ ...x, coins: x.coins - AI_HINT_COST })); }}>
+                        {smart.loading === p.term ? "…" : `✨${AI_HINT_COST}`}
+                      </button>
+                    )}
+                    {!revealed.includes(p.term) && (
+                      <button className="btn-hint" disabled={player.coins < HINT_COST} onClick={() => buyHint(p.term)}>🪙{HINT_COST}</button>
+                    )}
+                  </div>
                 )}
               </div>
             );
           })}
+          {smart.error && <p className="text-xs text-destructive">{smart.error}</p>}
           <button className="btn-ghost w-full" onClick={() => setSeed((s) => s + 1)}>New grid</button>
+          <button className="btn-ghost w-full" disabled={ai.loading} onClick={() => ai.load(major, level, 8)}>
+            {ai.loading ? "Generating…" : "✨ AI-generated grid"}
+          </button>
+          {ai.terms && <button className="btn-ghost w-full" onClick={ai.clear}>Classic terms</button>}
+          {ai.error && <p className="text-xs text-destructive">{ai.error}</p>}
         </aside>
       </div>
     </GameShell>
