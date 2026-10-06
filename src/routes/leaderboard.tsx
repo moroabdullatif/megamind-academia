@@ -21,7 +21,7 @@ function Leaderboard() {
   const { player } = usePlayer();
   const week = currentWeekId();
   const rivals = RIVALS.map((n) => ({
-    name: n, major: MAJORS[hash(n) % MAJORS.length].id, coins: 50 * (1 + (hash(n + week) % 12)), you: false,
+    name: n, major: MAJORS[hash(n) % MAJORS.length]!.id, coins: 50 * (1 + (hash(n + week) % 12)), you: false,
   }));
   const rows = [...rivals, ...(player?.major ? [{ name: `${player.name} (you)`, major: player.major, coins: player.weeklyCoins, you: true }] : [])]
     .sort((a, b) => b.coins - a.coins);

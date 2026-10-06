@@ -57,11 +57,11 @@ function WordSearch() {
   const sel = start && cur ? line(start, cur) ?? [start] : [];
   const selSet = new Set(sel.map(k));
   const foundSet = new Set(game.placed.filter((p) => found.includes(p.term)).flatMap((p) => p.cells.map(k)));
-  const hintSet = new Set(game.placed.filter((p) => revealed.includes(p.term) && !found.includes(p.term)).map((p) => k(p.cells[0])));
+  const hintSet = new Set(game.placed.filter((p) => revealed.includes(p.term) && !found.includes(p.term)).map((p) => k(p.cells[0]!)));
 
   const finish = () => {
     if (sel.length > 1) {
-      const word = sel.map(([r, c]) => game.grid[r][c]).join("");
+      const word = sel.map(([r, c]) => game.grid[r]![c]).join("");
       const hit = game.placed.find((p: Placed) => !found.includes(p.term) && (p.term === word || p.term === [...word].reverse().join("")) && p.cells.length === sel.length);
       if (hit) {
         const nf = [...found, hit.term];
@@ -74,7 +74,7 @@ function WordSearch() {
 
   const cellFromPoint = (x: number, y: number): Cell | null => {
     const el = document.elementFromPoint(x, y) as HTMLElement | null;
-    const d = el?.dataset?.cell;
+    const d = el?.dataset?.["cell"];
     return d ? (d.split(",").map(Number) as Cell) : null;
   };
 
