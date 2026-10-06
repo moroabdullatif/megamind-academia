@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { GameShell, NeedMajor } from "@/components/GameShell";
 import { shuffle, TERMS } from "@/lib/game-data";
-import { HINT_COST, usePlayer, winReward, WIN_REWARD } from "@/lib/game-store";
+import { HINT_COST, isBoss, loseRound, rewardFor, streakBonus, usePlayer, winRound } from "@/lib/game-store";
+import { TimerBar, useCountdown } from "@/lib/use-timer";
 import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
 
 export const Route = createFileRoute("/definitions")({
@@ -17,7 +18,8 @@ export const Route = createFileRoute("/definitions")({
   component: Definitions,
 });
 
-const ROUND = 5, PASS = 4;
+const NORMAL = { round: 5, pass: 4, secs: 20 };
+const BOSS = { round: 6, pass: 5, secs: 12 };
 
 function Definitions() {
   const { player, update } = usePlayer();
@@ -26,6 +28,8 @@ function Definitions() {
   const major = player?.major;
   const ai = useAiTerms();
   const smart = useSmartHint();
+  const boss = isBoss(player?.level ?? 1);
+  const { round: ROUND, pass: PASS, secs: SECS } = boss ? BOSS : NORMAL;
 
   const qs = useMemo(() => {
     if (!major) return [];
@@ -34,7 +38,7 @@ function Definitions() {
       ...t, options: shuffle([t.term, ...shuffle(all.filter((x) => x.term !== t.term)).slice(0, 3).map((x) => x.term)]),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [major, seed, ai.terms]);
+  }, [major, seed, ai.terms, ROUND]);
 
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -42,26 +46,30 @@ function Definitions() {
   const [typed, setTyped] = useState("");
   const [hints, setHints] = useState(0);
   const [done, setDone] = useState(false);
+  const [reward, setReward] = useState(0);
+  const left = useCountdown(SECS, !!player?.major && !done && !answer && qs.length > 0, `${seed}-${idx}`, () => submit(""));
 
   useEffect(() => { setIdx(0); setScore(0); setAnswer(null); setTyped(""); setHints(0); setDone(false); }, [ai.terms]);
 
   if (!player) return <GameShell><div /></GameShell>;
   if (!major) return <GameShell><NeedMajor /></GameShell>;
 
-  const q = qs[idx]!;
+  const q = qs[idx];
+  if (!q) return <GameShell><div /></GameShell>;
   const reset = () => { setSeed((s) => s + 1); setIdx(0); setScore(0); setAnswer(null); setTyped(""); setHints(0); setDone(false); };
 
-  const submit = (val: string) => {
-    if (answer) return;
+  function submit(val: string) {
+    const q = qs[idx];
+    if (answer || !q) return;
     const ok = val.trim().toUpperCase() === q.term;
     setAnswer(val.trim().toUpperCase() || "—");
     const ns = score + (ok ? 1 : 0);
     setScore(ns);
-  };
+  }
   const next = () => {
     if (idx + 1 >= ROUND) {
       setDone(true);
-      if (score >= PASS) update(winReward);
+      if (score >= PASS) { setReward(rewardFor(player)); update(winRound); } else update(loseRound);
       return;
     }
     setIdx(idx + 1); setAnswer(null); setTyped(""); setHints(0);
@@ -96,14 +104,16 @@ function Definitions() {
           </div>
         </div>
       </div>
+      {boss && !done && <div className="boss-banner mb-4">👹 BOSS LEVEL — {ROUND} questions, {SECS}s each, need {PASS}/{ROUND}. Double coins!</div>}
+      {player.streak > 0 && !done && <p className="mb-4 text-sm text-muted-foreground">🔥 {player.streak}-win streak · +{streakBonus(player.streak)} bonus coins on your next win</p>}
       {ai.error && <p className="mb-4 text-sm text-destructive">{ai.error} Using the classic set.</p>}
 
       {done ? (
         <div className="panel mx-auto max-w-lg space-y-4 text-center">
           <p className="font-display text-5xl font-extrabold">{score}/{ROUND}</p>
           {score >= PASS
-            ? <p className="text-primary font-semibold">🎉 You win! +{WIN_REWARD} coins · Level up!</p>
-            : <p className="text-muted-foreground">Get {PASS}/{ROUND} to win coins. Try again!</p>}
+            ? <p className="text-primary font-semibold">🎉 You win! +{reward} coins · Level up! 🔥 Streak {player.streak}</p>
+            : <p className="text-muted-foreground">Get {PASS}/{ROUND} to win coins. Streak reset — try again!</p>}
           <button className="btn-primary" onClick={reset}>{score >= PASS ? "Next level →" : "Retry"}</button>
         </div>
       ) : (
@@ -111,6 +121,7 @@ function Definitions() {
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Question {idx + 1}/{ROUND}</span><span>Score {score}</span>
           </div>
+          <TimerBar left={left} total={SECS} />
           <div className="progress"><div style={{ width: `${(idx / ROUND) * 100}%` }} /></div>
           <p className="font-display text-2xl font-semibold leading-snug">“{q.definition}”</p>
 
@@ -143,7 +154,7 @@ function Definitions() {
           {answer && (
             <div className="flex items-center justify-between gap-3">
               <p className={answer === q.term ? "text-primary font-semibold" : "text-destructive font-semibold"}>
-                {answer === q.term ? "Correct!" : `Answer: ${q.term}`}
+                {answer === q.term ? "Correct!" : `${answer === "—" ? "Time's up! " : ""}Answer: ${q.term}`}
               </p>
               <button className="btn-primary" onClick={next}>{idx + 1 >= ROUND ? "Finish" : "Next →"}</button>
             </div>

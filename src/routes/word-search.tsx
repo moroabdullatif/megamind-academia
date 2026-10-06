@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { GameShell, NeedMajor } from "@/components/GameShell";
 import { buildGrid, shuffle, TERMS, type Placed } from "@/lib/game-data";
-import { HINT_COST, usePlayer, winReward, WIN_REWARD } from "@/lib/game-store";
+import { HINT_COST, isBoss, loseRound, rewardFor, streakBonus, usePlayer, winRound } from "@/lib/game-store";
+import { TimerBar, useCountdown } from "@/lib/use-timer";
 import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
 
 export const Route = createFileRoute("/word-search")({
@@ -36,24 +37,29 @@ function WordSearch() {
   const major = player?.major;
   const ai = useAiTerms();
   const smart = useSmartHint();
+  const boss = isBoss(level);
 
   const game = useMemo(() => {
     if (!major) return null;
-    const size = Math.min(8 + Math.floor(level / 2), 12);
-    const count = Math.min(4 + Math.floor(level / 2), 8);
+    const size = Math.min(8 + Math.floor(level / 2) + (boss ? 2 : 0), 12);
+    const count = Math.min(4 + Math.floor(level / 2) + (boss ? 2 : 0), 8);
     const source = ai.terms && ai.terms.length >= 3 ? ai.terms : TERMS[major];
     const pool = shuffle(source).filter((t) => t.term.length <= size).slice(0, count);
-    return { size, ...buildGrid(pool, size) };
+    const g = buildGrid(pool, size);
+    return { size, secs: (boss ? 15 : 25) * g.placed.length + 20, ...g };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [major, level, seed, ai.terms]);
+  }, [major, level, seed, ai.terms, boss]);
 
   const [found, setFound] = useState<string[]>([]);
   const [revealed, setRevealed] = useState<string[]>([]);
   const [start, setStart] = useState<Cell | null>(null);
   const [cur, setCur] = useState<Cell | null>(null);
   const [won, setWon] = useState(false);
+  const [lost, setLost] = useState(false);
+  const [reward, setReward] = useState(0);
+  const left = useCountdown(game?.secs ?? 60, !!game && !won && !lost, game, () => { setLost(true); setStart(null); setCur(null); update(loseRound); });
 
-  useEffect(() => { setFound([]); setRevealed([]); setWon(false); smart.reset(); }, [game]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setFound([]); setRevealed([]); setWon(false); setLost(false); smart.reset(); }, [game]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!player) return <GameShell><div /></GameShell>;
   if (!major || !game) return <GameShell><NeedMajor /></GameShell>;
@@ -64,13 +70,13 @@ function WordSearch() {
   const hintSet = new Set(game.placed.filter((p) => revealed.includes(p.term) && !found.includes(p.term)).map((p) => k(p.cells[0]!)));
 
   const finish = () => {
-    if (sel.length > 1) {
+    if (sel.length > 1 && !lost && !won) {
       const word = sel.map(([r, c]) => game.grid[r]![c]).join("");
       const hit = game.placed.find((p: Placed) => !found.includes(p.term) && (p.term === word || p.term === [...word].reverse().join("")) && p.cells.length === sel.length);
       if (hit) {
         const nf = [...found, hit.term];
         setFound(nf);
-        if (nf.length === game.placed.length) { setWon(true); update(winReward); }
+        if (nf.length === game.placed.length) { setWon(true); setReward(rewardFor(player)); update(winRound); }
       }
     }
     setStart(null); setCur(null);
@@ -98,9 +104,22 @@ function WordSearch() {
         <p className="text-muted-foreground">{found.length}/{game.placed.length} found</p>
       </div>
 
+      <div className="mb-4 space-y-3">
+        {boss && !won && !lost && <div className="boss-banner">👹 BOSS LEVEL — bigger grid, less time. Double coins!</div>}
+        {player.streak > 0 && !won && !lost && <p className="text-sm text-muted-foreground">🔥 {player.streak}-win streak · +{streakBonus(player.streak)} bonus on your next win</p>}
+        <TimerBar left={left} total={game.secs} />
+      </div>
+
+      {lost && (
+        <div className="win-banner mb-6">
+          <span className="font-display text-2xl font-bold">⏱ Time's up! Streak reset.</span>
+          <button className="btn-primary" onClick={() => setSeed((s) => s + 1)}>Try again</button>
+        </div>
+      )}
+
       {won && (
         <div className="win-banner mb-6">
-          <span className="font-display text-2xl font-bold">🎉 Puzzle cleared! +{WIN_REWARD} coins</span>
+          <span className="font-display text-2xl font-bold">🎉 Puzzle cleared! +{reward} coins · 🔥 {player.streak}</span>
           <button className="btn-primary" onClick={() => setSeed((s) => s + 1)}>Next level →</button>
         </div>
       )}
@@ -108,7 +127,7 @@ function WordSearch() {
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div
           className="ws-grid select-none touch-none"
-          style={{ gridTemplateColumns: `repeat(${game.size}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${game.size}, minmax(0, 1fr))`, opacity: lost ? 0.5 : 1, pointerEvents: lost ? "none" : undefined }}
           onPointerUp={finish}
           onPointerLeave={() => start && finish()}
           onPointerMove={(e) => { if (start) { const c = cellFromPoint(e.clientX, e.clientY); if (c) setCur(c); } }}
