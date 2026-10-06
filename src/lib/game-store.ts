@@ -8,6 +8,8 @@ export type Player = {
   level: number;
   weeklyCoins: number;
   weekId: string;
+  streak: number;
+  bestStreak: number;
 };
 
 const KEY = "megamind-player";
@@ -21,7 +23,7 @@ export function currentWeekId() {
   return `${d.getUTCFullYear()}-W${week}`;
 }
 
-const fresh = (): Player => ({ name: "", major: null, coins: 100, level: 1, weeklyCoins: 0, weekId: currentWeekId() });
+const fresh = (): Player => ({ name: "", major: null, coins: 100, level: 1, weeklyCoins: 0, weekId: currentWeekId(), streak: 0, bestStreak: 0 });
 
 function load(): Player {
   try {
@@ -51,3 +53,17 @@ export function usePlayer() {
 export const winReward = (p: Player): Player => ({
   ...p, coins: p.coins + WIN_REWARD, weeklyCoins: p.weeklyCoins + WIN_REWARD, level: p.level + 1,
 });
+
+// ---- Streaks & boss levels ----
+export const BOSS_EVERY = 5;
+export const isBoss = (level: number) => level % BOSS_EVERY === 0;
+export const streakBonus = (streak: number) => Math.min(streak, 5) * 10;
+export const rewardFor = (p: Pick<Player, "level" | "streak">) =>
+  (WIN_REWARD + streakBonus(p.streak ?? 0)) * (isBoss(p.level) ? 2 : 1);
+
+export const winRound = (p: Player): Player => {
+  const r = rewardFor(p);
+  const streak = (p.streak ?? 0) + 1;
+  return { ...p, coins: p.coins + r, weeklyCoins: p.weeklyCoins + r, level: p.level + 1, streak, bestStreak: Math.max(p.bestStreak ?? 0, streak) };
+};
+export const loseRound = (p: Player): Player => ({ ...p, streak: 0 });

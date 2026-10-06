@@ -18,6 +18,7 @@ export function GameShell({ children }: { children: ReactNode }) {
           </nav>
           {player?.major && (
             <div className="flex items-center gap-2 text-sm font-semibold">
+              {player.streak > 0 && <span className="chip" title="Win streak">🔥 {player.streak}</span>}
               <span className="chip">Lv {player.level}</span>
               <span className="chip chip-coin">🪙 {player.coins}</span>
             </div>
