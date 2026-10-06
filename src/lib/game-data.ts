@@ -1,3 +1,4 @@
+
 export type Major = "Engineering" | "Nursing" | "Science" | "Business" | "General Campus";
 export type Term = { term: string; hint: string; definition: string };
 
@@ -84,14 +85,14 @@ export function shuffle<T>(arr: T[]): T[] {
 export type Placed = Term & { cells: [number, number][] };
 
 export function buildGrid(terms: Term[], size: number) {
-  const grid: string[][] = Array.from({ length: size }, () => Array(size).fill(""));
-  const dirs = [[0, 1], [1, 0], [1, 1], [-1, 1]];
+  const grid: any[][] = Array.from({ length: size }, () => Array(size).fill(""));
+  const dirs: [number, number][] = [[0, 1], [1, 0], [1, 1], [-1, 1]];
   const placed: Placed[] = [];
   for (const t of terms) {
     const w = t.term;
     if (w.length > size) continue;
     for (let tries = 0; tries < 300; tries++) {
-      const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
+      const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)]!;
       const r = Math.floor(Math.random() * size);
       const c = Math.floor(Math.random() * size);
       const er = r + dr * (w.length - 1), ec = c + dc * (w.length - 1);
@@ -113,7 +114,7 @@ export function buildGrid(terms: Term[], size: number) {
   }
   const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   for (const row of grid) for (let i = 0; i < size; i++) if (!row[i]) row[i] = A[Math.floor(Math.random() * 26)];
-  return { grid, placed };
+  return { grid: grid as string[][], placed };
 }
 
 export const RIVALS = [
