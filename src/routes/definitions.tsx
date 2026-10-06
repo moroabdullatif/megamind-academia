@@ -43,7 +43,7 @@ function Definitions() {
   if (!player) return <GameShell><div /></GameShell>;
   if (!major) return <GameShell><NeedMajor /></GameShell>;
 
-  const q = qs[idx];
+  const q = qs[idx]!;
   const reset = () => { setSeed((s) => s + 1); setIdx(0); setScore(0); setAnswer(null); setTyped(""); setHints(0); setDone(false); };
 
   const submit = (val: string) => {

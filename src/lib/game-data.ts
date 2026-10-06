@@ -85,7 +85,7 @@ export function shuffle<T>(arr: T[]): T[] {
 export type Placed = Term & { cells: [number, number][] };
 
 export function buildGrid(terms: Term[], size: number) {
-  const grid: any[][] = Array.from({ length: size }, () => Array(size).fill(""));
+  const grid: string[][] = Array.from({ length: size }, () => Array(size).fill(""));
   const dirs: [number, number][] = [[0, 1], [1, 0], [1, 1], [-1, 1]];
   const placed: Placed[] = [];
   for (const t of terms) {
@@ -99,13 +99,13 @@ export function buildGrid(terms: Term[], size: number) {
       if (er < 0 || er >= size || ec >= size) continue;
       let ok = true;
       for (let i = 0; i < w.length; i++) {
-        const ch = grid[r + dr * i][c + dc * i];
+        const ch = grid[r + dr * i]![c + dc * i];
         if (ch && ch !== w[i]) { ok = false; break; }
       }
       if (!ok) continue;
       const cells: [number, number][] = [];
       for (let i = 0; i < w.length; i++) {
-        grid[r + dr * i][c + dc * i] = w[i];
+        grid[r + dr * i]![c + dc * i] = w[i]!;
         cells.push([r + dr * i, c + dc * i]);
       }
       placed.push({ ...t, cells });
@@ -113,7 +113,7 @@ export function buildGrid(terms: Term[], size: number) {
     }
   }
   const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for (const row of grid) for (let i = 0; i < size; i++) if (!row[i]) row[i] = A[Math.floor(Math.random() * 26)];
+  for (const row of grid as string[][]) for (let i = 0; i < size; i++) if (!row[i]) row[i] = A[Math.floor(Math.random() * 26)]!;
   return { grid: grid as string[][], placed };
 }
 
