@@ -1,6 +1,24 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { usePlayer } from "@/lib/game-store";
+import { useAiProvider, type AiProvider } from "@/lib/use-ai";
+
+function AiPicker() {
+  const { provider, setProvider } = useAiProvider();
+  return (
+    <select
+      aria-label="AI provider"
+      title="AI provider"
+      value={provider}
+      onChange={(e) => setProvider(e.target.value as AiProvider)}
+      className="chip cursor-pointer bg-transparent text-xs"
+    >
+      <option value="auto">✨ Auto</option>
+      <option value="gemini">✨ Gemini</option>
+      <option value="openrouter">✨ Gemma</option>
+    </select>
+  );
+}
 
 export function GameShell({ children }: { children: ReactNode }) {
   const { player } = usePlayer();
@@ -18,6 +36,7 @@ export function GameShell({ children }: { children: ReactNode }) {
           </nav>
           {player?.major && (
             <div className="flex items-center gap-2 text-sm font-semibold">
+              <AiPicker />
               {player.streak > 0 && <span className="chip" title="Win streak">🔥 {player.streak}</span>}
               <span className="chip">Lv {player.level}</span>
               <span className="chip chip-coin">🪙 {player.coins}</span>
