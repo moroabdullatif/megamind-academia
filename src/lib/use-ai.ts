@@ -1,9 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import type { Term } from "./game-data";
 import { generateTerms, smartHint } from "./gemini.functions";
 
 export const AI_HINT_COST = 10;
+
+export type AiProvider = "auto" | "gemini" | "openrouter";
+const KEY = "megamind-ai-provider";
+const listeners = new Set<(p: AiProvider) => void>();
+
+function readProvider(): AiProvider {
+  if (typeof window === "undefined") return "auto";
+  const v = window.localStorage.getItem(KEY);
+  return v === "gemini" || v === "openrouter" ? v : "auto";
+}
+
+export function useAiProvider() {
+  const [provider, setP] = useState<AiProvider>("auto");
+  useEffect(() => {
+    setP(readProvider());
+    listeners.add(setP);
+    return () => { listeners.delete(setP); };
+  }, []);
+  const setProvider = (p: AiProvider) => {
+    window.localStorage.setItem(KEY, p);
+    listeners.forEach((l) => l(p));
+  };
+  return { provider, setProvider };
+}
 
 export function useAiTerms() {
   const gen = useServerFn(generateTerms);
@@ -12,7 +36,7 @@ export function useAiTerms() {
   const [error, setError] = useState<string | null>(null);
   const load = async (major: string, level: number, count: number) => {
     setLoading(true); setError(null);
-    try { setTerms(await gen({ data: { major, level, count } })); }
+    try { setTerms(await gen({ data: { major, level, count, provider: readProvider() } })); }
     catch (e) { setError(e instanceof Error ? e.message : "AI request failed."); }
     finally { setLoading(false); }
   };
@@ -27,7 +51,7 @@ export function useSmartHint() {
   const ask = async (t: Term, major: string): Promise<boolean> => {
     setLoading(t.term); setError(null);
     try {
-      const r = await fn({ data: { term: t.term, definition: t.definition, major } });
+      const r = await fn({ data: { term: t.term, definition: t.definition, major, provider: readProvider() } });
       setHints((h) => ({ ...h, [t.term]: r.hint }));
       return true;
     } catch (e) { setError(e instanceof Error ? e.message : "AI request failed."); return false; }
