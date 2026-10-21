@@ -41,7 +41,7 @@ function WordSearch() {
 
   const game = useMemo(() => {
     if (!major) return null;
-    const size = Math.min(8 + Math.floor(level / 2) + (boss ? 2 : 0), 12);
+    const size = boss ? 11 : 10;
     const count = Math.min(4 + Math.floor(level / 2) + (boss ? 2 : 0), 8);
     const source = ai.terms && ai.terms.length >= 3 ? ai.terms : TERMS[major];
     const pool = shuffle(source).filter((t) => t.term.length <= size).slice(0, count);
