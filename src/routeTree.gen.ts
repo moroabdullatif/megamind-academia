@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DefinitionsRouteImport } from './routes/definitions'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as WordSearchRouteImport } from './routes/word-search'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WordSearchRoute = WordSearchRouteImport.update({
   id: '/word-search',
   path: '/word-search',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/definitions': typeof DefinitionsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/premium': typeof PremiumRoute
   '/word-search': typeof WordSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/definitions': typeof DefinitionsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/premium': typeof PremiumRoute
   '/word-search': typeof WordSearchRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/definitions': typeof DefinitionsRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/premium': typeof PremiumRoute
   '/word-search': typeof WordSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/definitions' | '/leaderboard' | '/word-search'
+  fullPaths: '/' | '/definitions' | '/leaderboard' | '/premium' | '/word-search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/definitions' | '/leaderboard' | '/word-search'
-  id: '__root__' | '/' | '/definitions' | '/leaderboard' | '/word-search'
+  to: '/' | '/definitions' | '/leaderboard' | '/premium' | '/word-search'
+  id:
+    | '__root__'
+    | '/'
+    | '/definitions'
+    | '/leaderboard'
+    | '/premium'
+    | '/word-search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DefinitionsRoute: typeof DefinitionsRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  PremiumRoute: typeof PremiumRoute
   WordSearchRoute: typeof WordSearchRoute
 }
 
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/premium': {
+      id: '/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof PremiumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/word-search': {
       id: '/word-search'
       path: '/word-search'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DefinitionsRoute: DefinitionsRoute,
   LeaderboardRoute: LeaderboardRoute,
+  PremiumRoute: PremiumRoute,
   WordSearchRoute: WordSearchRoute,
 }
 export const routeTree = rootRouteImport
