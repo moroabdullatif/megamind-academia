@@ -5,6 +5,8 @@ import { shuffle, TERMS } from "@/lib/game-data";
 import { HINT_COST, isBoss, loseRound, rewardFor, streakBonus, usePlayer, winRound } from "@/lib/game-store";
 import { TimerBar, useCountdown } from "@/lib/use-timer";
 import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
+import { PremiumGate } from "@/components/PremiumGate";
+import { canUsePremium } from "@/lib/membership";
 
 export const Route = createFileRoute("/definitions")({
   head: () => ({
@@ -13,6 +15,8 @@ export const Route = createFileRoute("/definitions")({
       { name: "description", content: "Read the definition and pick or type the correct academic term." },
       { property: "og:title", content: "Term Definitions — MegaMind" },
       { property: "og:description", content: "Test your academic vocabulary and earn coins." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Definitions,
@@ -94,7 +98,7 @@ function Definitions() {
           <h1 className="font-display text-4xl font-extrabold">Term Definitions</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button className="btn-ghost" disabled={ai.loading} onClick={() => ai.load(major, player.level, 8)}>
+          <button className="btn-ghost" disabled={!canUsePremium("ai-terms") || ai.loading} onClick={() => ai.load(major, player.level, 8)}>
             {ai.loading ? "Generating…" : ai.terms ? "✨ New AI set" : "✨ AI questions"}
           </button>
           {ai.terms && <button className="btn-ghost" onClick={ai.clear}>Classic set</button>}
@@ -105,6 +109,7 @@ function Definitions() {
         </div>
       </div>
       {boss && !done && <div className="boss-banner mb-4">👹 BOSS LEVEL — {ROUND} questions, {SECS}s each, need {PASS}/{ROUND}. Double coins!</div>}
+      <PremiumGate />
       {player.streak > 0 && !done && <p className="mb-4 text-sm text-muted-foreground">🔥 {player.streak}-win streak · +{streakBonus(player.streak)} bonus coins on your next win</p>}
       {ai.error && <p className="mb-4 text-sm text-destructive">{ai.error} Using the classic set.</p>}
 
@@ -128,7 +133,7 @@ function Definitions() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-lg tracking-widest">{pattern}</p>
             <div className="flex gap-2">
-              <button className="btn-hint" disabled={!!answer || player.coins < AI_HINT_COST || !!smart.hints[q.term] || smart.loading === q.term} onClick={askSmart}>
+              <button className="btn-hint" disabled={!canUsePremium("smart-hints") || !!answer || player.coins < AI_HINT_COST || !!smart.hints[q.term] || smart.loading === q.term} onClick={askSmart}>
                 {smart.loading === q.term ? "Thinking…" : `✨ Smart hint 🪙${AI_HINT_COST}`}
               </button>
               <button className="btn-hint" disabled={!!answer || player.coins < HINT_COST} onClick={buyHint}>Letter hint 🪙{HINT_COST}</button>

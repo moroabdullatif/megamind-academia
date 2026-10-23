@@ -11,6 +11,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Pick your major, solve word searches and definition challenges, earn coins and climb the weekly leaderboard." },
       { property: "og:title", content: "MegaMind — Campus Academic Word Games" },
       { property: "og:description", content: "Word search and term definition games for every major. Earn coins, level up, become the Grand MegaMind." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Home,

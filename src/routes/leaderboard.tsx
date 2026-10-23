@@ -10,6 +10,8 @@ export const Route = createFileRoute("/leaderboard")({
       { name: "description", content: "Top coin earners this week. Who will be the #1 Grand MegaMind?" },
       { property: "og:title", content: "Weekly Leaderboard — MegaMind" },
       { property: "og:description", content: "See this week's top MegaMind coin earners." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Leaderboard,
