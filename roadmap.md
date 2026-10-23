@@ -1,0 +1,3 @@
+- [ ] Add the draft membership page with disabled checkout.
+- [ ] Gate AI extras while preserving free classic games.
+- [ ] Verify membership navigation, locked controls, and tests.
