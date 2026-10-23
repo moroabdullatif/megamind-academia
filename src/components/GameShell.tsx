@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { usePlayer } from "@/lib/game-store";
 import { useAiProvider, type AiProvider } from "@/lib/use-ai";
+import { canUsePremium } from "@/lib/membership";
 
 function AiPicker() {
   const { provider, setProvider } = useAiProvider();
@@ -9,6 +10,7 @@ function AiPicker() {
     <select
       aria-label="AI provider"
       title="AI provider"
+      disabled={!canUsePremium("provider-choice")}
       value={provider}
       onChange={(e) => setProvider(e.target.value as AiProvider)}
       className="chip cursor-pointer bg-transparent text-xs"
@@ -33,6 +35,7 @@ export function GameShell({ children }: { children: ReactNode }) {
             <Link to="/word-search" className="nav-link" activeProps={{ className: "nav-link-active" }}>Word Search</Link>
             <Link to="/definitions" className="nav-link" activeProps={{ className: "nav-link-active" }}>Definitions</Link>
             <Link to="/leaderboard" className="nav-link" activeProps={{ className: "nav-link-active" }}>Leaderboard</Link>
+            <Link to="/premium" className="nav-link text-accent" activeProps={{ className: "nav-link-active" }}>Premium</Link>
           </nav>
           {player?.major && (
             <div className="flex items-center gap-2 text-sm font-semibold">
@@ -47,6 +50,7 @@ export function GameShell({ children }: { children: ReactNode }) {
           <Link to="/word-search" className="nav-link" activeProps={{ className: "nav-link-active" }}>Word Search</Link>
           <Link to="/definitions" className="nav-link" activeProps={{ className: "nav-link-active" }}>Definitions</Link>
           <Link to="/leaderboard" className="nav-link" activeProps={{ className: "nav-link-active" }}>Leaderboard</Link>
+          <Link to="/premium" className="nav-link text-accent" activeProps={{ className: "nav-link-active" }}>Premium</Link>
         </nav>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>

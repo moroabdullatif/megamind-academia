@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import type { Term } from "./game-data";
 import { generateTerms, smartHint } from "./gemini.functions";
+import { canUsePremium, PREMIUM_LOCK_MESSAGE } from "./membership";
 
 export const AI_HINT_COST = 10;
 
@@ -23,6 +24,7 @@ export function useAiProvider() {
     return () => { listeners.delete(setP); };
   }, []);
   const setProvider = (p: AiProvider) => {
+    if (!canUsePremium("provider-choice")) return;
     window.localStorage.setItem(KEY, p);
     listeners.forEach((l) => l(p));
   };
@@ -35,6 +37,7 @@ export function useAiTerms() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const load = async (major: string, level: number, count: number) => {
+    if (!canUsePremium("ai-terms")) { setError(PREMIUM_LOCK_MESSAGE); return; }
     setLoading(true); setError(null);
     try { setTerms(await gen({ data: { major, level, count, provider: readProvider() } })); }
     catch (e) { setError(e instanceof Error ? e.message : "AI request failed."); }
@@ -49,6 +52,7 @@ export function useSmartHint() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ask = async (t: Term, major: string): Promise<boolean> => {
+    if (!canUsePremium("smart-hints")) { setError(PREMIUM_LOCK_MESSAGE); return false; }
     setLoading(t.term); setError(null);
     try {
       const r = await fn({ data: { term: t.term, definition: t.definition, major, provider: readProvider() } });

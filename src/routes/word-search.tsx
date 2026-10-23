@@ -5,6 +5,8 @@ import { buildGrid, shuffle, TERMS, type Placed } from "@/lib/game-data";
 import { HINT_COST, isBoss, loseRound, rewardFor, streakBonus, usePlayer, winRound } from "@/lib/game-store";
 import { TimerBar, useCountdown } from "@/lib/use-timer";
 import { AI_HINT_COST, useAiTerms, useSmartHint } from "@/lib/use-ai";
+import { PremiumGate } from "@/components/PremiumGate";
+import { canUsePremium } from "@/lib/membership";
 
 export const Route = createFileRoute("/word-search")({
   head: () => ({
@@ -13,6 +15,8 @@ export const Route = createFileRoute("/word-search")({
       { name: "description", content: "Drag across the letter grid to find academic terms from hints." },
       { property: "og:title", content: "Word Search — MegaMind" },
       { property: "og:description", content: "Find hidden academic terms and earn coins." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: WordSearch,
@@ -105,6 +109,7 @@ function WordSearch() {
       </div>
 
       <div className="mb-4 space-y-3">
+        <PremiumGate />
         {boss && !won && !lost && <div className="boss-banner">👹 BOSS LEVEL — bigger grid, less time. Double coins!</div>}
         {player.streak > 0 && !won && !lost && <p className="text-sm text-muted-foreground">🔥 {player.streak}-win streak · +{streakBonus(player.streak)} bonus on your next win</p>}
         <TimerBar left={left} total={game.secs} />
@@ -160,7 +165,7 @@ function WordSearch() {
                 {!done && (
                   <div className="flex gap-1">
                     {!smart.hints[p.term] && (
-                      <button className="btn-hint" title="Smart hint" disabled={player.coins < AI_HINT_COST || smart.loading === p.term}
+                      <button className="btn-hint" title="Premium smart hint" disabled={!canUsePremium("smart-hints") || player.coins < AI_HINT_COST || smart.loading === p.term}
                         onClick={async () => { if (await smart.ask(p, major)) update((x) => ({ ...x, coins: x.coins - AI_HINT_COST })); }}>
                         {smart.loading === p.term ? "…" : `✨${AI_HINT_COST}`}
                       </button>
@@ -175,7 +180,7 @@ function WordSearch() {
           })}
           {smart.error && <p className="text-xs text-destructive">{smart.error}</p>}
           <button className="btn-ghost w-full" onClick={() => setSeed((s) => s + 1)}>New grid</button>
-          <button className="btn-ghost w-full" disabled={ai.loading} onClick={() => ai.load(major, level, 8)}>
+          <button className="btn-ghost w-full" disabled={!canUsePremium("ai-terms") || ai.loading} onClick={() => ai.load(major, level, 8)}>
             {ai.loading ? "Generating…" : "✨ AI-generated grid"}
           </button>
           {ai.terms && <button className="btn-ghost w-full" onClick={ai.clear}>Classic terms</button>}
